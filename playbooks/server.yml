@@ -1,0 +1,54 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+    tasks:
+      - name: selinux
+        selinux:
+          policy: targeted
+          state: permissive
+
+      - name: install os packages
+        package:
+          name:
+            - nginx
+            - vim
+            - mc
+          state: present
+
+      - name: create ssl nginx directories
+        file:
+          path: "{{ item }}"
+          state: directory
+        loop:
+          - /etc/pki/nginx
+          - /etc/pki/nginx/private
+
+      - name: hello world for index.html
+        copy:
+          dest: /usr/share/nginx/html/index.html
+          content: |
+            hello world
+
+      - name: enable service
+        service:
+          name: nginx
+          state: started
+          enabled: yes
+
+      - name: PEM ssl generate
+        community.crypto.openssl_privatekey:
+          path: /etc/pki/nginx/private/server.key
+
+      - name: Generate an OpenSSL Certificate Signing Request
+        community.crypto.openssl_csr:
+          path: /etc/pki/nginx/private/server.csr
+          privatekey_path: /etc/pki/nginx/private/server.key
+          common_name: localhost
+
+      - name: Generate a Self Signed OpenSSL certificate
+        community.crypto.x509_certificate:
+          path: /etc/pki/nginx/server.crt
+          privatekey_path: /etc/pki/nginx/private/server.key
+          csr_path: /etc/pki/nginx/private/server.csr
+          provider: selfsigned

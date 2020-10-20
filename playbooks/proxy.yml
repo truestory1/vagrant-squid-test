@@ -1,0 +1,23 @@
+---
+  - hosts: all
+    become: true
+    gather_facts: false
+    tasks:
+      - name: selinux
+        selinux:
+          policy: targeted
+          state: permissive
+
+      - name: install os packages
+        package:
+          name:
+            - squid
+            - vim
+            - mc
+          state: present
+
+      - name: enable service
+        service:
+          name: squid
+          state: started
+          enabled: yes
